@@ -1,20 +1,31 @@
-# Ask for the base directory path where the new folder should be created
-$baseDir = Read-Host "Enter the directory where you want to create the new folder"
+# Prompt user for relative path
+$relativePath = Read-Host "Enter the relative path (from project root) where the folder should go (e.g., Src/Modules)"
 
-# Check if the directory exists
-if (-Not (Test-Path $baseDir)) {
-    Write-Host "The specified directory does not exist."
-    exit
+# Prompt user for folder name
+$folderName = Read-Host "Enter the name of the new folder"
+
+# Function to find project root by locating .git
+function Get-ProjectRoot {
+    $dir = Get-Location
+    while ($dir -ne $null -and !(Test-Path (Join-Path $dir ".git"))) {
+        $dir = $dir.Parent
+    }
+    return $dir
 }
 
-# Ask for the new folder name
-$newFolderName = Read-Host "Enter the name of the new folder"
+$projectRoot = Get-ProjectRoot
 
-# Construct the full path for the new folder
-$fullPath = Join-Path -Path $baseDir -ChildPath $newFolderName
+if (-not $projectRoot) {
+    Write-Error "Could not find .git directory in any parent folders. Are you inside a Git repo?"
+    exit 1
+}
 
-# Create the folder and add the .gitkeep file
-New-Item -ItemType Directory -Force -Path $fullPath
-New-Item -ItemType File -Force -Path (Join-Path -Path $fullPath -ChildPath ".gitkeep")
+# Resolve full target path
+$targetPath = Join-Path $projectRoot $relativePath
+$finalPath = Join-Path $targetPath $folderName
 
-Write-Host "Created folder $newFolderName with .gitkeep in $baseDir"
+# Create folder and .gitkeep
+New-Item -ItemType Directory -Force -Path $finalPath | Out-Null
+New-Item -ItemType File -Force -Path (Join-Path $finalPath ".gitkeep") | Out-Null
+
+Write-Host "✅ Created folder at '$finalPath' with .gitkeep"
