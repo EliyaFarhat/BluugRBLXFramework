@@ -1,0 +1,1 @@
+-- This script will initiate the start of the server and require all necessary modules.
